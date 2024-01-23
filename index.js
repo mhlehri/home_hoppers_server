@@ -20,21 +20,20 @@ app.use(cookieParser());
 
 //! schema
 const HousesSchema = new mongoose.Schema({
-  title: String,
-  tags: String,
-  category: { type: String, default: "basic" },
-  article: String,
-  Aemail: String,
-  Aimage: String,
-  Aname: String,
+  name: String,
+  address: String,
+  city: String,
+  bedrooms: String,
+  bathrooms: String,
+  size: String,
   image: String,
-  message: { type: String, default: "" },
-  publish_date: {
-    type: String,
-  },
-  publisher: String,
-  view_count: { type: Number, default: 0 },
-  status: { type: String, default: "pending" },
+  date: Date,
+  rent: String,
+  number: String,
+  des: String,
+  email: String,
+  owner_name: String,
+  status: { type: String, default: "available" },
 });
 
 const userSchema = new mongoose.Schema({
@@ -80,9 +79,24 @@ async function run() {
       });
     };
 
-    //? all articles with every status
+    //? all houses with every status
     app.get("/allHouses", async (req, res) => {
-      const result = await Articles.find().sort({ publish_date: -1 });
+      const limit = req.query.limit;
+      const page = req.query.page;
+      const search = req.query.search;
+      const { tags, publisher } = req.query;
+      const query = { status: "available" };
+      if (tags) query.tags = tags;
+      if (publisher) query.publisher = publisher;
+      if (search) {
+        // Add search conditions to the query
+        query.$or = [{ title: { $regex: search, $options: "i" } }];
+      }
+      const skip = (page - 1) * limit || 0;
+      const result = await Houses.find(query)
+        .sort({ publish_date: -1 })
+        .skip(skip)
+        .limit(limit);
       res.send(result);
     });
 
@@ -125,10 +139,10 @@ async function run() {
       }
     });
 
-    //? post articles
+    //? add houses
     app.post("/addHouse", async (req, res) => {
       const house = req.body;
-      const housesDoc = new Houses(article);
+      const housesDoc = new Houses(house);
       const result = await housesDoc.save();
       res.send(result);
     });
@@ -138,10 +152,6 @@ async function run() {
       app.post("/addUser", async (req, res) => {
         const user = req.body;
         const userEmail = user.email;
-        const find = await Users.findOne({ email: userEmail });
-        if (find) {
-          return new Error("email already taken!");
-        }
         const userDoc = new Users(user);
         const result = await userDoc.save();
         res.send(result);
