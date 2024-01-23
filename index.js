@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
@@ -101,16 +102,12 @@ async function run() {
     });
 
     // ? get  my Houses
-    app.get("/myHouses/:email", verifyToken, async (req, res) => {
+    app.get("/myHouses/:email", async (req, res) => {
       const email = req.params.email;
-      if (email === req.user.email) {
-        const result = await Houses.find({
-          Aemail: email,
-        });
-        res.send(result);
-      } else {
-        res.status(403).send({ message: "unauthorized" });
-      }
+      const result = await Houses.find({
+        Aemail: email,
+      });
+      res.send(result);
     });
 
     //? get single house
@@ -128,14 +125,22 @@ async function run() {
       res.send(result);
     });
     //? get single user
-    app.get("/profile/:email", verifyToken, async (req, res) => {
-      const email = req.params.email;
-      console.log(req.user.email);
-      if (req.user.email === email) {
-        const result = await Users.findOne({ email: email });
-        res.send(result);
-      } else {
-        res.status(403).send({ message: "unauthorize access" });
+    app.get("/user", async (req, res) => {
+      const { email, password } = req.query;
+      try {
+        const query = { email: email };
+        const result = await Users.findOne(query);
+        console.log(result);
+        const hashed = result.password;
+        const match = await bcrypt.compare(password, hashed);
+
+        if (match) {
+          res.send(result);
+        } else {
+          res.send({ success: false, error: "Password is incorrect" });
+        }
+      } catch (err) {
+        console.log(err);
       }
     });
 
@@ -151,7 +156,9 @@ async function run() {
     try {
       app.post("/addUser", async (req, res) => {
         const user = req.body;
-        const userEmail = user.email;
+        const pass = user.password;
+        const hashedPassword = await bcrypt.hash(pass, 10);
+        user.password = hashedPassword;
         const userDoc = new Users(user);
         const result = await userDoc.save();
         res.send(result);
