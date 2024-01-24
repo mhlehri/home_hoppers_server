@@ -82,11 +82,8 @@ async function run() {
 
     //? all houses with every status
     app.get("/allHouses", async (req, res) => {
-      const limit = req.query.limit;
-      const page = req.query.page;
-      const search = req.query.search;
-      const size = req.query.size;
-      const { bedrooms, city, available } = req.query;
+      const { limit, page, search, size, bedrooms, city, available } =
+        req.query;
       const query = {};
       if (bedrooms) query.bedrooms = bedrooms;
       if (city) query.city = city;
@@ -101,7 +98,7 @@ async function run() {
       }
       const skip = (page - 1) * limit || 0;
       const result = await Houses.find(query)
-        .sort({ publish_date: -1 })
+        .sort({ date: -1 })
         .skip(skip)
         .limit(limit);
       res.send(result);
@@ -175,15 +172,38 @@ async function run() {
     }
 
     //! update articles
-    app.put("/editArticles/:id", async (req, res) => {
+    app.put("/editHouse/:id", async (req, res) => {
       const id = req.params.id;
-      const { publisher, image, tags, title, article } = req.body;
-      const query = {};
-      if (publisher) query.publisher = publisher;
-      if (image) query.image = image;
-      if (tags) query.tags = tags;
-      if (title) query.title = title;
-      if (article) query.article = article;
+      const {
+        name,
+        address,
+        city,
+        bedrooms,
+        bathrooms,
+        size,
+        image,
+        date,
+        rent,
+        number,
+        des,
+        email,
+        owner_name,
+      } = req.body;
+      const query = {
+        name,
+        address,
+        city,
+        bedrooms,
+        bathrooms,
+        size,
+        image,
+        date,
+        rent,
+        number,
+        des,
+        email,
+        owner_name,
+      };
       const doc = await Houses.findOneAndUpdate({ _id: id }, query, {
         returnOriginal: false,
       });
