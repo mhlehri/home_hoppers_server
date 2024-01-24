@@ -41,12 +41,32 @@ const userSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
   role: String,
-  number: Number,
+  number: String,
   password: String,
+});
+const bookSchema = new mongoose.Schema({
+  name: String,
+  address: String,
+  city: String,
+  bedrooms: String,
+  bathrooms: String,
+  size: String,
+  image: String,
+  date: Date,
+  rent: String,
+  number: String,
+  des: String,
+  email: String,
+  owner_name: String,
+  status: String,
+  R_name: String,
+  R_number: String,
+  R_email: String,
 });
 
 const Houses = mongoose.model("Houses", HousesSchema);
 const Users = mongoose.model("Users", userSchema);
+const Books = mongoose.model("Books", bookSchema);
 // custom middleware for verifying token validity
 
 const user = process.env.DB_USER;
@@ -94,7 +114,7 @@ async function run() {
       }
       if (search) {
         // Add search conditions to the query
-        query.$or = [{ title: { $regex: search, $options: "i" } }];
+        query.$or = [{ name: { $regex: search, $options: "i" } }];
       }
       const skip = (page - 1) * limit || 0;
       const result = await Houses.find(query)
@@ -111,6 +131,14 @@ async function run() {
         email: email,
       });
       console.log(result);
+      res.send(result);
+    });
+    // ? get  my bookings
+    app.get("/myBooks/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await Books.find({
+        R_email: email,
+      });
       res.send(result);
     });
 
@@ -171,6 +199,26 @@ async function run() {
       return console.log(error);
     }
 
+    //? add bookings
+    try {
+      app.post("/addBook", async (req, res) => {
+        const book = req.body;
+        const ex = await Books.find({ email: book.email });
+        if (ex.length < 2) {
+          const bookDoc = new Books(book);
+          const result = await bookDoc.save();
+          res.send(result);
+        } else {
+          res.send({
+            success: false,
+            error: "You reached the limit (lim..: 2).",
+          });
+        }
+      });
+    } catch (error) {
+      return console.log(error);
+    }
+
     //! update articles
     app.put("/editHouse/:id", async (req, res) => {
       const id = req.params.id;
@@ -210,10 +258,38 @@ async function run() {
       res.send(doc);
     });
 
+    app.patch("/updateStatus/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        status: "booked",
+      };
+      const doc = await Houses.findOneAndUpdate({ _id: id }, query, {
+        returnOriginal: false,
+      });
+      res.send(doc);
+    });
+
+    app.patch("/updateStatusToAvailable/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        status: "available",
+      };
+      const doc = await Houses.findOneAndUpdate({ _id: id }, query, {
+        returnOriginal: false,
+      });
+      res.send(doc);
+    });
+
     //? delete houses
     app.delete("/deleteHouse/:id", async (req, res) => {
       const id = req.params.id;
       const result = await Houses.deleteOne({ _id: id });
+      res.send(result);
+    });
+    //? delete houses
+    app.delete("/deleteBook/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await Books.deleteOne({ _id: id });
       res.send(result);
     });
 
