@@ -85,10 +85,16 @@ async function run() {
       const limit = req.query.limit;
       const page = req.query.page;
       const search = req.query.search;
-      const { tags, publisher } = req.query;
-      const query = { status: "available" };
-      if (tags) query.tags = tags;
-      if (publisher) query.publisher = publisher;
+      const size = req.query.size;
+      const { bedrooms, city, available } = req.query;
+      const query = {};
+      if (bedrooms) query.bedrooms = bedrooms;
+      if (city) query.city = city;
+      if (available) query.status = available;
+      if (size) {
+        // Add search conditions to the query
+        query.$or = [{ size: { $regex: size, $options: "i" } }];
+      }
       if (search) {
         // Add search conditions to the query
         query.$or = [{ title: { $regex: search, $options: "i" } }];
@@ -105,13 +111,14 @@ async function run() {
     app.get("/myHouses/:email", async (req, res) => {
       const email = req.params.email;
       const result = await Houses.find({
-        Aemail: email,
+        email: email,
       });
+      console.log(result);
       res.send(result);
     });
 
     //? get single house
-    app.get("/singleArticle/:id", async (req, res) => {
+    app.get("/singleHouse/:id", async (req, res) => {
       const id = req.params.id;
       const result = await Houses.findOne({
         _id: id,
